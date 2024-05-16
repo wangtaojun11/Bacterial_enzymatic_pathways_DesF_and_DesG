@@ -1,0 +1,228 @@
+---
+title: "cell_line_androgens"
+author: "Taojun Wang"
+date: "2024-01-07"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+getwd()
+```
+## load required packages
+```{r warning=FALSE}
+library(ggplot2)
+library(ape)
+library(plyr)
+library(RColorBrewer)
+library(reshape2)
+library(scales)
+library(dplyr)
+library(ggpubr) 
+library(cowplot) 
+library(readr)
+library(stats)
+library(readr)
+```
+
+# Load the data
+```{r}
+d1 <- read_csv("C:/UIUC documents/Androgen manuscript/Data and codes/Androgen_VCaP_overtime.csv") #read the data
+head(d1)
+```
+
+```{r}
+d1_2d <- subset(d1, Time == "2days")
+d1_4d <- subset(d1, Time == "4days")
+d1_8d <- subset(d1, Time == "8days")
+```
+
+# define format
+```{r}
+format.A <-  theme_classic()+ theme(plot.title = element_text(size= 11, hjust=0.5, face="bold"))+ 
+  theme(axis.text = element_text(size = 10)) + theme(axis.title = element_text(size = 10, face="bold")) + 
+  theme(strip.text = element_text( size = 10, face= "bold")) + theme(legend.position = "none")
+
+format.B <-  theme_classic()+ theme(plot.title = element_text(size= 11, hjust=0.5, face="bold"))+ 
+  theme(axis.text = element_text(size = 10)) + theme(axis.title = element_text(size = 10, face="bold")) + 
+  theme(strip.text = element_text( size = 10, face= "bold")) 
+```
+
+# color
+```{r}
+display.brewer.pal(n = 8, name = 'Dark2')
+# Hexadecimal color specification 
+brewer.pal(n = 8, name = "Dark2")
+```
+
+# Clarify the factors
+```{r}
+d1_2d$Androgens = factor(d1_2d$Androgens,order = TRUE, levels = c("VC", "AD", "T", "epiT","11OHT"))
+d1_4d$Androgens = factor(d1_4d$Androgens,order = TRUE, levels = c("VC", "AD", "T", "epiT", "11OHT"))
+d1_8d$Androgens = factor(d1_8d$Androgens,order = TRUE, levels = c("VC", "AD", "T", "epiT", "11OHT"))
+```
+
+# Summarize the d1_2d
+```{r}
+d1_2d_summary <- d1_2d %>%
+  group_by(Androgens) %>%
+  summarise(
+    Mean = mean(Relative_cell_proliferation),
+    SD = sd(Relative_cell_proliferation) # This avoids a grouped df warning in ggplot
+  )
+
+d1_2d_summary$Relative_cell_proliferation <- d1_2d_summary$Mean
+head(d1_2d_summary)
+## View(d1_2d_summary)
+
+```
+
+```{r}
+
+p <- ggplot(d1_2d, aes(x = Androgens, y = Relative_cell_proliferation, fill = Androgens)) +
+  geom_bar(data = d1_2d_summary, aes(y = Relative_cell_proliferation), stat = "identity", position = position_dodge(),color="black") +
+  geom_point(position = position_jitterdodge(jitter.width = 0.2, dodge.width = 0.9), aes(color = Androgens), 
+             shape = 21, size = 3, stroke = 0.5, fill = "white")  + 
+  geom_errorbar(data = d1_2d_summary, aes(ymin = Relative_cell_proliferation - SD, ymax = Relative_cell_proliferation + SD), 
+                width = .2, position = position_dodge(0.9)) + 
+   scale_fill_manual(values = c( "#1B9E77", "#D95F02", "#7570B3", "#66A61E" , "#A6761D", "#666666")) + 
+  scale_color_manual(values = c( "black" ,"black" ,"black","black","black")) + ylim(0,5) + 
+  format.B + labs(x="Androgens (10 nM)", y="Relative cell proliferation (2 days)")
+
+print(p)
+
+#ggsave("C:/UIUC documents/Project of urinary microbes/Manuscript preparation/Data analysis_LNCaP/Relative cell proliferation_lable.pdf", height = 3.5, width = 4.5)
+
+```
+
+```{r}
+p1 <- ggplot(d1_2d, aes(x = Androgens, y = Relative_cell_proliferation, fill = Androgens)) +
+  geom_bar(data = d1_2d_summary, aes(y = Relative_cell_proliferation), stat = "identity", position = position_dodge(),color="black") +
+  geom_point(position = position_jitterdodge(jitter.width = 1.5, dodge.width = 0.9), aes(color = Androgens), 
+             shape = 21, size = 2.5, stroke = 0.5, fill = "white")  + 
+  geom_errorbar(data = d1_2d_summary, aes(ymin = Relative_cell_proliferation - SD, ymax = Relative_cell_proliferation + SD), 
+                width = .2, position = position_dodge(0.9)) + 
+  scale_fill_manual(values = c( "#1B9E77", "#D95F02", "#7570B3", "#66A61E" , "#A6761D", "#666666")) + 
+  scale_color_manual(values = c( "black" ,"black" ,"black","black","black")) + ylim(0,5) + 
+  format.A + labs(x="Androgens (10 nM)", y="Relative cell proliferation (2 days)")
+
+print(p1)
+
+# ggsave("C:/UIUC documents/Project of urinary microbes/Manuscript preparation/Data analysis_LNCaP/Relative cell proliferation 2d.pdf", height = 3.5, width = 3)
+
+```
+
+# Summarize the d1_4d
+```{r}
+d1_4d_summary <- d1_4d %>%
+  group_by(Androgens) %>%
+  summarise(
+    Mean = mean(Relative_cell_proliferation),
+    SD = sd(Relative_cell_proliferation) # This avoids a grouped df warning in ggplot
+  )
+
+d1_4d_summary$Relative_cell_proliferation <- d1_4d_summary$Mean
+head(d1_4d_summary)
+## View(d1_4d_summary)
+
+```
+
+```{r}
+
+p2 <- ggplot(d1_4d, aes(x = Androgens, y = Relative_cell_proliferation, fill = Androgens)) +
+  geom_bar(data = d1_4d_summary, aes(y = Relative_cell_proliferation), stat = "identity", position = position_dodge(),color="black") +
+  geom_point(position = position_jitterdodge(jitter.width = 1.5, dodge.width = 0.9), aes(color = Androgens), 
+             shape = 21, size = 2.5, stroke = 0.5, fill = "white")  + 
+  geom_errorbar(data = d1_4d_summary, aes(ymin = Relative_cell_proliferation - SD, ymax = Relative_cell_proliferation + SD), 
+                width = .2, position = position_dodge(0.9)) + 
+   scale_fill_manual(values = c( "#1B9E77", "#D95F02", "#7570B3", "#66A61E" , "#A6761D", "#666666")) + 
+  scale_color_manual(values = c( "black" ,"black" ,"black","black","black")) + ylim(0,5) + 
+  format.A + labs(x="Androgens (10 nM)", y="Relative cell proliferation (4 days)")
+
+print(p2)
+
+# ggsave("C:/UIUC documents/Project of urinary microbes/Manuscript preparation/Data analysis_LNCaP/Relative cell proliferation 4d.pdf", height = 3.5, width = 3)
+
+```
+
+# Summarize the d1_8d
+```{r}
+d1_8d_summary <- d1_8d %>%
+  group_by(Androgens) %>%
+  summarise(
+    Mean = mean(Relative_cell_proliferation),
+    SD = sd(Relative_cell_proliferation) # This avoids a grouped df warning in ggplot
+  )
+
+d1_8d_summary$Relative_cell_proliferation <- d1_8d_summary$Mean
+head(d1_8d_summary)
+## View(d1_8d_summary)
+
+```
+
+```{r}
+
+p3 <- ggplot(d1_8d, aes(x = Androgens, y = Relative_cell_proliferation, fill = Androgens)) +
+  geom_bar(data = d1_8d_summary, aes(y = Relative_cell_proliferation), stat = "identity", position = position_dodge(),color="black") +
+  geom_point(position = position_jitterdodge(jitter.width = 1.5, dodge.width = 0.9), aes(color = Androgens), 
+             shape = 21, size = 2.5, stroke = 0.5, fill = "white")  + 
+  geom_errorbar(data = d1_8d_summary, aes(ymin = Relative_cell_proliferation - SD, ymax = Relative_cell_proliferation + SD), 
+                width = .2, position = position_dodge(0.9)) + 
+  scale_fill_manual(values = c( "#1B9E77", "#D95F02", "#7570B3", "#66A61E" , "#A6761D", "#666666")) + 
+  scale_color_manual(values = c( "black" ,"black" ,"black","black","black")) + ylim(0,5) + 
+  format.A + labs(x="Androgens (10 nM)", y="Relative cell proliferation (8 days)")
+
+
+print(p3)
+
+# ggsave("C:/UIUC documents/Project of urinary microbes/Manuscript preparation/Data analysis_LNCaP/Relative cell proliferation 8d.pdf", height = 3.5, width = 3)
+
+```
+# combime the plots
+```{r}
+Androgen_VCaP_overtime <- plot_grid(p1,p2,p3, labels=c("a", "b", "c"), ncol = 3, nrow = 1)
+print(Androgen_VCaP_overtime)
+ggsave("C:/UIUC documents/Androgen manuscript/Data and codes/Figures/Androgen_VCaP_overtime.pdf", height = 3.5, width = 6 , useDingbats = FALSE)
+
+```
+
+#statistics 2d
+```{r}
+
+pairwise.t.test(d1_2d$Relative_cell_proliferation, d1_2d$Androgens, p.adjust.method = "BH")
+
+pairwise.t.test(d1_4d$Relative_cell_proliferation, d1_4d$Androgens, p.adjust.method = "BH")
+
+pairwise.t.test(d1_8d$Relative_cell_proliferation, d1_8d$Androgens, p.adjust.method = "BH")
+
+```
+
+
+#statistics overtime
+```{r}
+
+d1_VC <- subset(d1, Androgens =="VC")
+pairwise.t.test(d1_VC$Relative_cell_proliferation, d1_VC$Time, p.adjust.method = "BH")
+
+d1_AD <- subset(d1, Androgens =="AD")
+pairwise.t.test(d1_AD$Relative_cell_proliferation, d1_AD$Time, p.adjust.method = "BH")
+
+d1_T <- subset(d1, Androgens =="T")
+pairwise.t.test(d1_T$Relative_cell_proliferation, d1_T$Time, p.adjust.method = "BH")
+
+d1_epiT <- subset(d1, Androgens =="epiT")
+pairwise.t.test(d1_epiT$Relative_cell_proliferation, d1_epiT$Time, p.adjust.method = "BH")
+
+d1_11OHT <- subset(d1, Androgens =="11OHT")
+pairwise.t.test(d1_11OHT$Relative_cell_proliferation, d1_11OHT$Time, p.adjust.method = "BH")
+
+```
+
+```{r}
+sessionInfo()
+```
+
+

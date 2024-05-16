@@ -1,0 +1,185 @@
+---
+title: "cell_line_androgens"
+author: "Taojun Wang"
+date: "2024-01-07"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+getwd()
+```
+## load required packages
+```{r warning=FALSE}
+library(ggplot2)
+library(ape)
+library(plyr)
+library(RColorBrewer)
+library(reshape2)
+library(scales)
+library(dplyr)
+library(ggpubr) 
+library(cowplot) 
+library(readr)
+```
+# Load the data
+```{r}
+data <- read.csv("C:/UIUC documents/Androgen manuscript/Data and codes/Androgen_LNCaP_dosage.csv") #read the data
+head(data)
+```
+# define format
+```{r}
+format.A <-  theme_classic()+ theme(plot.title = element_text(size= 11, hjust=0.5, face="bold"))+ 
+  theme(axis.text = element_text(size = 10)) + theme(axis.title = element_text(size = 10, face="bold")) + 
+  theme(strip.text = element_text( size = 10, face= "bold")) + theme(legend.position = "none")
+
+format.B <-  theme_classic()+ theme(plot.title = element_text(size= 11, hjust=0.5, face="bold"))+ 
+  theme(axis.text = element_text(size = 10)) + theme(axis.title = element_text(size = 10, face="bold")) + 
+  theme(strip.text = element_text( size = 10, face= "bold")) 
+```
+
+# color
+```{r}
+display.brewer.pal(n = 8, name = 'Dark2')
+# Hexadecimal color specification 
+brewer.pal(n = 8, name = "Dark2")
+```
+
+# Clarify the factors
+```{r}
+data$Androgens = factor(data$Androgens,order = TRUE, levels = c("VC", "AD", "T","epiT"))
+```
+
+```{r}
+data.1nM <- subset(data, Concentrations == "1_nM")
+data.10nM <- subset(data, Concentrations == "10_nM")
+```
+
+# Summarize the data
+```{r}
+
+data.1nM_summary <- data.1nM %>%
+  group_by(Androgens) %>%
+  summarise(
+    Mean = mean(Relative_cell_proliferation),
+    SD = sd(Relative_cell_proliferation) # This avoids a grouped df warning in ggplot
+  )
+
+data.1nM_summary$Relative_cell_proliferation <- data.1nM_summary$Mean
+head(data.1nM_summary)
+##View(data.1nM_summary)
+
+```
+
+# Plot the data
+```{r}
+
+ p_1nM <- ggplot(data.1nM, aes(x = Androgens, y= Relative_cell_proliferation, color=Androgens)) + 
+  stat_summary(fun.y=mean,
+                 geom="bar",color="black", aes(group = Androgens, fill=Androgens)) +  
+  geom_jitter(shape = 21, size = 3, stroke = 0.5, fill = "white", color = "black") + ylim(0,2.5) +
+  stat_summary(fun.data = mean_sd,
+                 geom = "errorbar",
+                   width = 0.2, size=0.5, color="black") +
+  format.A + labs(x="Androgens (1 nM)", y="Relative cell proliferation") + 
+  scale_fill_manual(values = c( "#1B9E77","#66A61E", "#E6AB02", "#A6761D")) + 
+  scale_color_manual(values = c( "#1B9E77" ,"#66A61E", "#E6AB02", "#A6761D")) 
+
+print(p_1nM)
+  
+ # ggsave("C:/UIUC documents/Project of urinary microbes/Manuscript preparation/Data analysis_LNCaP/cell_proliferation_androgens_1_nM.pdf", height = 3.5, width = 2.5)
+
+```
+
+#statistics
+```{r}
+pairwise.t.test(data.1nM$Relative_cell_proliferation, data.1nM$Androgens, p.adjust.method = "BH")
+```
+# Summarize the data
+```{r}
+data.10nM_summary <- data.10nM %>%
+  group_by(Androgens) %>%
+  summarise(
+    Mean = mean(Relative_cell_proliferation),
+    SD = sd(Relative_cell_proliferation) 
+  )
+
+data.10nM_summary$Relative_cell_proliferation <- data.10nM_summary$Mean
+head(data.10nM_summary)
+## View(data.10nM_summary)
+
+```
+
+# Plot the data
+```{r}
+p_10nM <- ggplot(data.10nM, aes(x = Androgens, y= Relative_cell_proliferation, color=Androgens)) + 
+  stat_summary(fun.y=mean,
+                 geom="bar",color="black", aes(group = Androgens, fill=Androgens)) +  
+  geom_jitter(shape = 21, size = 3, stroke = 0.5, fill = "white", color = "black") + ylim(0,2.5)+
+  stat_summary(fun.data = mean_sd,
+                 geom = "errorbar",
+                   width = 0.2, size=0.5, color="black") +
+  format.A + labs(x="Androgens (10 nM)", y="Relative cell proliferation")+
+  scale_fill_manual(values = c( "#1B9E77","#66A61E", "#E6AB02", "#A6761D")) + 
+  scale_color_manual(values = c( "#1B9E77" ,"#66A61E", "#E6AB02", "#A6761D")) 
+
+print(p_10nM)
+  
+ # ggsave("C:/UIUC documents/Project of urinary microbes/Manuscript preparation/Data analysis_LNCaP/cell_proliferation_androgens_10_nM.pdf", height = 3.5, width = 2.5)
+
+```
+
+#statistics
+```{r}
+pairwise.t.test(data.10nM$Relative_cell_proliferation, data.10nM$Androgens, p.adjust.method = "BH")
+```
+
+```{r}
+Androgen_LNCaP_dosage <- plot_grid(p_1nM,p_10nM, labels=c("a", "b", "c"), ncol = 2, nrow = 1)
+print(Androgen_LNCaP_dosage)
+
+ggsave("C:/UIUC documents/Androgen manuscript/Data and codes/Figures/Androgen_LNCaP_dosage.pdf", height = 3.5, width = 4, useDingbats = FALSE)
+
+```
+
+# statistics between groups
+```{r}
+data.VC <- subset(data, Androgens == "VC")
+pairwise.t.test(data.VC$Relative_cell_proliferation, data.VC$Concentrations, p.adjust.method = "BH")
+
+data.AD <- subset(data, Androgens == "AD")
+pairwise.t.test(data.AD$Relative_cell_proliferation, data.AD$Concentrations, p.adjust.method = "BH")
+
+data.T <- subset(data, Androgens == "T")
+pairwise.t.test(data.T$Relative_cell_proliferation, data.T$Concentrations, p.adjust.method = "BH")
+
+data.epiT <- subset(data, Androgens == "epiT")
+pairwise.t.test(data.epiT$Relative_cell_proliferation, data.epiT$Concentrations, p.adjust.method = "BH")
+
+```
+
+```{r}
+sessionInfo()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

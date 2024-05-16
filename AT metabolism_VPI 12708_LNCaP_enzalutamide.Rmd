@@ -1,0 +1,121 @@
+---
+title: "cell_line_androgens"
+author: "Taojun Wang"
+date: "2024-01-07"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+getwd()
+```
+## load required packages
+```{r warning=FALSE}
+library(ggplot2)
+library(ape)
+library(plyr)
+library(RColorBrewer)
+library(reshape2)
+library(scales)
+library(dplyr)
+library(ggpubr) 
+library(cowplot) 
+library(readr)
+library(stats)
+library(readr)
+```
+
+# Load the data
+```{r}
+d1 <- read_csv("C:/UIUC documents/Androgen manuscript/Data and codes/AT metabolism_VPI 12708_LNCaP_enzalutamide.csv") #read the data
+head(d1)
+```
+
+# define format
+```{r}
+format.A <-  theme_classic()+ theme(plot.title = element_text(size= 11, hjust=0.5, face="bold"))+ 
+  theme(axis.text = element_text(size = 10)) + theme(axis.title = element_text(size = 10, face="bold")) + 
+  theme(strip.text = element_text( size = 10, face= "bold")) + theme(legend.position = "none")
+
+format.B <-  theme_classic()+ theme(plot.title = element_text(size= 11, hjust=0.5, face="bold"))+ 
+  theme(axis.text = element_text(size = 10)) + theme(axis.title = element_text(size = 10, face="bold")) + 
+  theme(strip.text = element_text( size = 10, face= "bold")) 
+```
+
+# color
+```{r}
+display.brewer.pal(n = 8, name = 'Dark2')
+# Hexadecimal color specification 
+brewer.pal(n = 8, name = "Dark2")
+```
+# Clarify the factors
+```{r}
+d1$Androgens = factor(d1$Androgens,order = TRUE, levels = c("CL", "AT", "epiAT"))
+```
+
+# Summarize the d1_24h
+```{r}
+d1_summary <- d1 %>%
+  group_by(Androgens,Enzalutamide) %>%
+  summarise(
+    Mean = mean(Relative_cell_proliferation),
+    SD = sd(Relative_cell_proliferation) # This avoids a grouped df warning in ggplot
+  )
+
+d1_summary$Relative_cell_proliferation <- d1_summary$Mean
+head(d1_summary)
+
+```
+
+```{r}
+
+p <- ggplot(d1, aes(x = Androgens, y = Relative_cell_proliferation, fill = Enzalutamide)) +
+  geom_bar(data = d1_summary, aes(y = Relative_cell_proliferation), stat = "identity", position = position_dodge(),color="black") +
+  geom_point(position = position_jitterdodge(jitter.width = 0.2, dodge.width = 0.9), aes(color = Enzalutamide), 
+             shape = 21, size = 3, stroke = 0.5, fill = "white")  + 
+  geom_errorbar(data = d1_summary, aes(ymin = Relative_cell_proliferation - SD, ymax = Relative_cell_proliferation + SD), 
+                width = .2, position = position_dodge(0.9)) + 
+  scale_fill_manual(values = c( "#D95F02" ,"#7570B3" )) + 
+  scale_color_manual(values = c( "black" ,"black" )) + ylim(0,2) + 
+  format.B + labs(x="Androgens (10 nM)", y="Relative cell proliferation")
+
+print(p)
+
+ggsave("C:/UIUC documents/Androgen manuscript/Data and codes/Figures/AT metabolism_VPI 12708_LNCaP_enzalutamide.pdf", height = 3.5, width = 4.5)
+
+```
+
+
+```{r}
+
+d1_0uM <- subset(d1, Enzalutamide == "0uM")
+pairwise.t.test(d1_0uM$Relative_cell_proliferation, d1_0uM$Androgens, p.adjust.method = "BH")
+
+d1_2uM <- subset(d1, Enzalutamide == "2uM")
+pairwise.t.test(d1_0uM$Relative_cell_proliferation, d1_0uM$Androgens, p.adjust.method = "BH")
+
+```
+
+```{r}
+
+d1_CL <- subset(d1, Androgens == "CL")
+pairwise.t.test(d1_CL$Relative_cell_proliferation, d1_CL$Enzalutamide, p.adjust.method = "BH")
+
+d1_AT <- subset(d1, Androgens == "AT")
+pairwise.t.test(d1_AT$Relative_cell_proliferation, d1_AT$Enzalutamide, p.adjust.method = "BH")
+
+d1_epiAT <- subset(d1, Androgens == "epiAT")
+pairwise.t.test(d1_epiAT$Relative_cell_proliferation, d1_epiAT$Enzalutamide, p.adjust.method = "BH")
+
+```
+
+```{r}
+
+```
+
+
+
+

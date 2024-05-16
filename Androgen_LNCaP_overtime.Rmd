@@ -1,0 +1,263 @@
+---
+title: "cell_line_androgens"
+author: "Taojun Wang"
+date: "2024-01-07"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+getwd()
+```
+## load required packages
+```{r warning=FALSE}
+library(ggplot2)
+library(ape)
+library(plyr)
+library(RColorBrewer)
+library(reshape2)
+library(scales)
+library(dplyr)
+library(ggpubr) 
+library(cowplot) 
+library(readr)
+library(stats)
+library(readr)
+```
+
+# Load the data
+```{r}
+d1 <- read_csv("C:/UIUC documents/Androgen manuscript/Data and codes/Androgen_LNCaP_overtime.csv") #read the data
+head(d1)
+```
+
+```{r}
+d1_24h <- subset(d1, Time == "24h")
+d1_48h <- subset(d1, Time == "48h")
+d1_96h <- subset(d1, Time == "96h")
+```
+
+# define format
+```{r}
+format.A <-  theme_classic()+ theme(plot.title = element_text(size= 11, hjust=0.5, face="bold"))+ 
+  theme(axis.text = element_text(size = 10)) + theme(axis.title = element_text(size = 10, face="bold")) + 
+  theme(strip.text = element_text( size = 10, face= "bold")) + theme(legend.position = "none")
+
+format.B <-  theme_classic()+ theme(plot.title = element_text(size= 11, hjust=0.5, face="bold"))+ 
+  theme(axis.text = element_text(size = 10)) + theme(axis.title = element_text(size = 10, face="bold")) + 
+  theme(strip.text = element_text( size = 10, face= "bold")) 
+```
+
+# color
+```{r}
+display.brewer.pal(n = 8, name = 'Dark2')
+# Hexadecimal color specification 
+brewer.pal(n = 8, name = "Dark2")
+```
+
+# Clarify the factors
+```{r}
+d1_24h$Androgens = factor(d1_24h$Androgens,order = TRUE, levels = c("VC", "AD", "T", "epiT"))
+d1_48h$Androgens = factor(d1_48h$Androgens,order = TRUE, levels = c("VC", "AD", "T", "epiT"))
+d1_96h$Androgens = factor(d1_96h$Androgens,order = TRUE, levels = c("VC", "AD", "T", "epiT"))
+```
+
+# Summarize the d1_24h
+```{r}
+d1_24h_summary <- d1_24h %>%
+  group_by(Androgens,Enzalutamide) %>%
+  summarise(
+    Mean = mean(Relative_cell_proliferation),
+    SD = sd(Relative_cell_proliferation) # This avoids a grouped df warning in ggplot
+  )
+
+d1_24h_summary$Relative_cell_proliferation <- d1_24h_summary$Mean
+head(d1_24h_summary)
+##View(d1_24h_summary)
+
+```
+
+```{r}
+
+p1 <- ggplot(d1_24h, aes(x = Androgens, y = Relative_cell_proliferation, fill = Enzalutamide)) +
+  geom_bar(data = d1_24h_summary, aes(y = Relative_cell_proliferation), stat = "identity", position = position_dodge(),color="black") +
+  geom_point(position = position_jitterdodge(jitter.width = 0.2, dodge.width = 0.9), aes(color = Enzalutamide), 
+             shape = 21, size = 2.5, stroke = 0.5, fill = "white")  + 
+  geom_errorbar(data = d1_24h_summary, aes(ymin = Relative_cell_proliferation - SD, ymax = Relative_cell_proliferation + SD), 
+                width = .2, position = position_dodge(0.9)) + 
+  scale_fill_manual(values = c( "#D95F02" ,"#7570B3" ,"#E7298A", "#66A61E", "#E6AB02", "#A6761D", "#666666","#1B9E77")) + 
+  scale_color_manual(values = c( "black" ,"black" ,"#E7298A", "#66A61E", "#E6AB02", "#A6761D", "#666666","#1B9E77")) + ylim(0,2.5) +
+  format.B + labs(x="Androgens (10 nM)", y="Relative cell proliferation (24h)")
+
+print(p1)
+
+```
+
+# Summarize the d1_48h
+```{r}
+d1_48h_summary <- d1_48h %>%
+  group_by(Androgens,Enzalutamide) %>%
+  summarise(
+    Mean = mean(Relative_cell_proliferation),
+    SD = sd(Relative_cell_proliferation) # This avoids a grouped df warning in ggplot
+  )
+
+d1_48h_summary$Relative_cell_proliferation <- d1_48h_summary$Mean
+head(d1_48h_summary)
+## View(d1_48h_summary)
+
+```
+
+```{r}
+
+p2 <- ggplot(d1_48h, aes(x = Androgens, y = Relative_cell_proliferation, fill = Enzalutamide)) +
+  geom_bar(data = d1_48h_summary, aes(y = Relative_cell_proliferation), stat = "identity", position = position_dodge(),color="black") +
+  geom_point(position = position_jitterdodge(jitter.width = 0.2, dodge.width = 0.9), aes(color = Enzalutamide), 
+             shape = 21, size = 2.5, stroke = 0.5, fill = "white")  + 
+  geom_errorbar(data = d1_48h_summary, aes(ymin = Relative_cell_proliferation - SD, ymax = Relative_cell_proliferation + SD), 
+                width = .2, position = position_dodge(0.9)) + 
+  scale_fill_manual(values = c("#D95F02" ,"#7570B3" )) + 
+  scale_color_manual(values = c("black" ,"black")) + ylim(0,2.5) +
+  format.B + labs(x="Androgens (10 nM)", y="Relative cell proliferation (48h)")
+
+print(p2)
+
+# ggsave("C:/UIUC documents/Project of urinary microbes/Manuscript preparation/Data analysis_LNCaP/Relative cell proliferation 48h.pdf", height = 3.5, width = 3)
+
+```
+
+# Summarize the d1_96h
+```{r}
+d1_96h_summary <- d1_96h %>%
+  group_by(Androgens,Enzalutamide) %>%
+  summarise(
+    Mean = mean(Relative_cell_proliferation),
+    SD = sd(Relative_cell_proliferation) # This avoids a grouped df warning in ggplot
+  )
+
+d1_96h_summary$Relative_cell_proliferation <- d1_96h_summary$Mean
+head(d1_96h_summary)
+## View(d1_96h_summary)
+
+```
+
+```{r}
+
+p3 <- ggplot(d1_96h, aes(x = Androgens, y = Relative_cell_proliferation, fill = Enzalutamide)) +
+  geom_bar(data = d1_96h_summary, aes(y = Relative_cell_proliferation), stat = "identity", position = position_dodge(),color="black") +
+  geom_point(position = position_jitterdodge(jitter.width = 0.2, dodge.width = 0.9), aes(color = Enzalutamide), 
+             shape = 21, size = 2.5, stroke = 0.5, fill = "white")  + 
+  geom_errorbar(data = d1_96h_summary, aes(ymin = Relative_cell_proliferation - SD, ymax = Relative_cell_proliferation + SD), 
+                width = .2, position = position_dodge(0.9)) + 
+  scale_fill_manual(values = c("#D95F02" ,"#7570B3" )) + 
+  scale_color_manual(values = c("black" ,"black" )) + ylim(0,2.5) +
+  format.B + labs(x="Androgens (10 nM)", y="Relative cell proliferation (96h)")
+
+print(p3)
+
+# ggsave("C:/UIUC documents/Project of urinary microbes/Manuscript preparation/Data analysis_LNCaP/Relative cell proliferation 96h.pdf", height = 3.5, width = 3)
+
+```
+# combime the plots
+```{r}
+Androgen_LNCaP_overtime <- plot_grid(p1,p2,p3, labels=c("a", "b", "c"), ncol = 3, nrow = 1)
+print(Androgen_LNCaP_overtime)
+ggsave("C:/UIUC documents/Androgen manuscript/Data and codes/Figures/Androgen_LNCaP_overtime.pdf", height = 3.5, width = 10 , useDingbats = FALSE)
+
+```
+
+#statistics 24h
+```{r}
+
+d1_24h_0uM <- subset(d1_24h, Enzalutamide == "0uM")
+pairwise.t.test(d1_24h_0uM$Relative_cell_proliferation, d1_24h_0uM$Androgens, p.adjust.method = "BH")
+
+d1_24h_2uM <- subset(d1_24h, Enzalutamide == "2uM")
+pairwise.t.test(d1_24h_2uM$Relative_cell_proliferation, d1_24h_2uM$Androgens, p.adjust.method = "BH")
+
+d1_24h_VC <- subset(d1_24h, Androgens == "VC")
+pairwise.t.test(d1_24h_VC$Relative_cell_proliferation, d1_24h_VC$Enzalutamide, p.adjust.method = "BH")
+
+d1_24h_AD <- subset(d1_24h, Androgens == "AD")
+pairwise.t.test(d1_24h_AD$Relative_cell_proliferation, d1_24h_AD$Enzalutamide, p.adjust.method = "BH")
+
+d1_24h_T <- subset(d1_24h, Androgens == "T")
+pairwise.t.test(d1_24h_T$Relative_cell_proliferation, d1_24h_T$Enzalutamide, p.adjust.method = "BH")
+
+d1_24h_epiT <- subset(d1_24h, Androgens == "epiT")
+pairwise.t.test(d1_24h_epiT$Relative_cell_proliferation, d1_24h_epiT$Enzalutamide, p.adjust.method = "BH")
+
+```
+
+#statistics 48h
+```{r}
+
+d1_48h_0uM <- subset(d1_48h, Enzalutamide == "0uM")
+pairwise.t.test(d1_48h_0uM$Relative_cell_proliferation, d1_48h_0uM$Androgens, p.adjust.method = "BH")
+
+d1_48h_2uM <- subset(d1_48h, Enzalutamide == "2uM")
+pairwise.t.test(d1_48h_2uM$Relative_cell_proliferation, d1_48h_2uM$Androgens, p.adjust.method = "BH")
+
+d1_48h_VC <- subset(d1_48h, Androgens == "VC")
+pairwise.t.test(d1_48h_VC$Relative_cell_proliferation, d1_48h_VC$Enzalutamide, p.adjust.method = "BH")
+
+d1_48h_AD <- subset(d1_48h, Androgens == "AD")
+pairwise.t.test(d1_48h_AD$Relative_cell_proliferation, d1_48h_AD$Enzalutamide, p.adjust.method = "BH")
+
+d1_48h_T <- subset(d1_48h, Androgens == "T")
+pairwise.t.test(d1_48h_T$Relative_cell_proliferation, d1_48h_T$Enzalutamide, p.adjust.method = "BH")
+
+d1_48h_epiT <- subset(d1_48h, Androgens == "epiT")
+pairwise.t.test(d1_48h_epiT$Relative_cell_proliferation, d1_48h_epiT$Enzalutamide, p.adjust.method = "BH")
+
+```
+
+#statistics 96h
+```{r}
+
+d1_96h_0uM <- subset(d1_96h, Enzalutamide == "0uM")
+pairwise.t.test(d1_96h_0uM$Relative_cell_proliferation, d1_96h_0uM$Androgens, p.adjust.method = "BH")
+
+d1_96h_2uM <- subset(d1_96h, Enzalutamide == "2uM")
+pairwise.t.test(d1_96h_2uM$Relative_cell_proliferation, d1_96h_2uM$Androgens, p.adjust.method = "BH")
+
+d1_96h_VC <- subset(d1_96h, Androgens == "VC")
+pairwise.t.test(d1_96h_VC$Relative_cell_proliferation, d1_96h_VC$Enzalutamide, p.adjust.method = "BH")
+
+d1_96h_AD <- subset(d1_96h, Androgens == "AD")
+pairwise.t.test(d1_96h_AD$Relative_cell_proliferation, d1_96h_AD$Enzalutamide, p.adjust.method = "BH")
+
+d1_96h_T <- subset(d1_96h, Androgens == "T")
+pairwise.t.test(d1_96h_T$Relative_cell_proliferation, d1_96h_T$Enzalutamide, p.adjust.method = "BH")
+
+d1_96h_epiT <- subset(d1_96h, Androgens == "epiT")
+pairwise.t.test(d1_96h_epiT$Relative_cell_proliferation, d1_96h_epiT$Enzalutamide, p.adjust.method = "BH")
+
+```
+
+#statistics overtime
+```{r}
+
+d1_0uM_VC <- subset(d1, Enzalutamide == "0uM"&Androgens =="VC")
+pairwise.t.test(d1_0uM_VC$Relative_cell_proliferation, d1_0uM_VC$Time, p.adjust.method = "BH")
+
+d1_0uM_AD <- subset(d1, Enzalutamide == "0uM"&Androgens =="AD")
+pairwise.t.test(d1_0uM_AD$Relative_cell_proliferation, d1_0uM_AD$Time, p.adjust.method = "BH")
+
+d1_0uM_T <- subset(d1, Enzalutamide == "0uM"&Androgens =="T")
+pairwise.t.test(d1_0uM_T$Relative_cell_proliferation, d1_0uM_T$Time, p.adjust.method = "BH")
+
+d1_0uM_epiT <- subset(d1, Enzalutamide == "0uM"&Androgens =="epiT")
+pairwise.t.test(d1_0uM_epiT$Relative_cell_proliferation, d1_0uM_epiT$Time, p.adjust.method = "BH")
+
+```
+
+```{r}
+sessionInfo()
+```
+
+
+
