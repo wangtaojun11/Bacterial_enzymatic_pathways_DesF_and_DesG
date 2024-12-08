@@ -1,0 +1,211 @@
+---
+title: "Androgen_VCaP_proliferation_overtime"
+author: "Taojun Wang"
+date: "2024-11-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+getwd()
+```
+
+```{r warning=FALSE}
+library(ggplot2)
+library(ape)
+library(plyr)
+library(RColorBrewer)
+library(reshape2)
+library(scales)
+library(dplyr)
+library(ggpubr) 
+library(cowplot) 
+library(readr)
+library(stats)
+library(readr)
+```
+
+```{r}
+d1 <- read_csv("Androgen_VCaP_proliferation_overtime.csv") 
+head(d1)
+```
+
+```{r}
+levels(factor(d1$Androgens))
+levels(factor(d1$Time))
+```
+
+```{r}
+d1_d2 <- subset(d1, Time == "d2")
+d1_d4 <- subset(d1, Time == "d4")
+d1_d8 <- subset(d1, Time == "d8")
+```
+
+```{r}
+format.A <-  theme_classic()+ theme(plot.title = element_text(size= 11, hjust=0.5, face="bold"))+ 
+  theme(axis.text = element_text(size = 10)) + theme(axis.title = element_text(size = 10, face="bold")) + 
+  theme(strip.text = element_text( size = 10, face= "bold")) + theme(legend.position = "none")
+
+format.B <-  theme_classic()+ theme(plot.title = element_text(size= 11, hjust=0.5, face="bold"))+ 
+  theme(axis.text = element_text(size = 10)) + theme(axis.title = element_text(size = 10, face="bold")) + 
+  theme(strip.text = element_text( size = 10, face= "bold")) 
+```
+
+```{r}
+display.brewer.pal(n = 8, name = 'Dark2')
+brewer.pal(n = 8, name = "Dark2")
+```
+
+```{r}
+d1_d2$Androgens = factor(d1_d2$Androgens,order = TRUE, levels = c("VC", "AD", "T", "epiT","11OHT"))
+d1_d4$Androgens = factor(d1_d4$Androgens,order = TRUE, levels = c("VC", "AD", "T", "epiT","11OHT"))
+d1_d8$Androgens = factor(d1_d8$Androgens,order = TRUE, levels = c("VC", "AD", "T", "epiT","11OHT"))
+```
+
+```{r}
+d1_d2_summary <- d1_d2 %>%
+  group_by(Androgens,Replicates) %>%
+  summarise(
+    Mean = mean(Relative_cell_proliferation),
+    SD = sd(Relative_cell_proliferation) 
+  )
+
+d1_d2_summary$Relative_cell_proliferation <- d1_d2_summary$Mean
+head(d1_d2_summary)
+#View(d1_d2_summary)
+
+d1_d2_summary2 <- d1_d2_summary %>%
+  group_by(Androgens) %>%
+  summarise(
+    Mean = mean(Relative_cell_proliferation),
+    SD = sd(Relative_cell_proliferation) 
+  )
+
+d1_d2_summary2$Relative_cell_proliferation <- d1_d2_summary2$Mean
+head(d1_d2_summary2)
+#View(d1_d2_summary2)
+
+```
+
+```{r}
+
+p_d2 <- ggplot(d1_d2_summary, aes(x = Androgens, y = Relative_cell_proliferation, fill = Androgens)) +
+  geom_bar(data = d1_d2_summary2, aes(y = Relative_cell_proliferation), stat = "identity", position = position_dodge(),color="black") +
+  geom_point(position = position_jitterdodge(jitter.width = 0.5, dodge.width = 0.9), aes(color = Androgens), 
+             shape = 21, size = 3, stroke = 0.5, fill = "white")  + 
+  geom_errorbar(data = d1_d2_summary2, aes(ymin = Relative_cell_proliferation - SD, ymax = Relative_cell_proliferation + SD), 
+                width = .2, position = position_dodge(0.9)) + 
+  scale_fill_manual(values = c( "#1B9E77", "#D95F02", "#7570B3", "#66A61E" , "#A6761D", "#666666")) + 
+  scale_color_manual(values = c( "black" ,"black" ,"black","black","black")) + ylim(0,6) + 
+  format.A + labs(x="Androgens (10 nM)", y="Relative cell proliferation (2 days)")
+
+print(p_d2)
+
+```
+
+```{r}
+d1_d4_summary <- d1_d4 %>%
+  group_by(Androgens,Replicates) %>%
+  summarise(
+    Mean = mean(Relative_cell_proliferation),
+    SD = sd(Relative_cell_proliferation) # This avoids a grouped df warning in ggplot
+  )
+
+d1_d4_summary$Relative_cell_proliferation <- d1_d4_summary$Mean
+head(d1_d4_summary)
+#View(d1_d4_summary)
+
+d1_d4_summary2 <- d1_d4_summary %>%
+  group_by(Androgens) %>%
+  summarise(
+    Mean = mean(Relative_cell_proliferation),
+    SD = sd(Relative_cell_proliferation) # This avoids a grouped df warning in ggplot
+  )
+
+d1_d4_summary2$Relative_cell_proliferation <- d1_d4_summary2$Mean
+head(d1_d4_summary2)
+#View(d1_d4_summary2)
+
+```
+
+```{r}
+
+p_d4 <- ggplot(d1_d4_summary, aes(x = Androgens, y = Relative_cell_proliferation, fill = Androgens)) +
+  geom_bar(data = d1_d4_summary2, aes(y = Relative_cell_proliferation), stat = "identity", position = position_dodge(),color="black") +
+  geom_point(position = position_jitterdodge(jitter.width = 0.5, dodge.width = 0.9), aes(color = Androgens), 
+             shape = 21, size = 3, stroke = 0.5, fill = "white")  + 
+  geom_errorbar(data = d1_d4_summary2, aes(ymin = Relative_cell_proliferation - SD, ymax = Relative_cell_proliferation + SD), 
+                width = .2, position = position_dodge(0.9)) + 
+    scale_fill_manual(values = c( "#1B9E77", "#D95F02", "#7570B3", "#66A61E" , "#A6761D", "#666666")) + 
+  scale_color_manual(values = c( "black" ,"black" ,"black","black","black")) + ylim(0,6) + 
+  format.A + labs(x="Androgens (10 nM)", y="Relative cell proliferation (4 days)")
+
+print(p_d4)
+
+```
+
+```{r}
+d1_d8_summary <- d1_d8 %>%
+  group_by(Androgens,Replicates) %>%
+  summarise(
+    Mean = mean(Relative_cell_proliferation),
+    SD = sd(Relative_cell_proliferation) 
+  )
+
+d1_d8_summary$Relative_cell_proliferation <- d1_d8_summary$Mean
+head(d1_d8_summary)
+#View(d1_d8_summary)
+
+d1_d8_summary2 <- d1_d8_summary %>%
+  group_by(Androgens) %>%
+  summarise(
+    Mean = mean(Relative_cell_proliferation),
+    SD = sd(Relative_cell_proliferation) 
+  )
+
+d1_d8_summary2$Relative_cell_proliferation <- d1_d8_summary2$Mean
+head(d1_d8_summary2)
+#View(d1_d8_summary2)
+
+```
+
+```{r}
+
+p_d8 <- ggplot(d1_d8_summary, aes(x = Androgens, y = Relative_cell_proliferation, fill = Androgens)) +
+  geom_bar(data = d1_d8_summary2, aes(y = Relative_cell_proliferation), stat = "identity", position = position_dodge(),color="black") +
+  geom_point(position = position_jitterdodge(jitter.width = 0.5, dodge.width = 0.9), aes(color = Androgens), 
+             shape = 21, size = 3, stroke = 0.5, fill = "white")  + 
+  geom_errorbar(data = d1_d8_summary2, aes(ymin = Relative_cell_proliferation - SD, ymax = Relative_cell_proliferation + SD), 
+                width = .2, position = position_dodge(0.9)) + 
+    scale_fill_manual(values = c( "#1B9E77", "#D95F02", "#7570B3", "#66A61E" , "#A6761D", "#666666")) + 
+  scale_color_manual(values = c( "black" ,"black" ,"black","black","black")) + ylim(0,6) + 
+  format.A + labs(x="Androgens (10 nM)", y="Relative cell proliferation (8 days)")
+
+print(p_d8)
+
+```
+
+```{r}
+VCaP_cell_proliferation_overtime <- plot_grid(p_d2,p_d4,p_d8, labels=c("a", "b", "c"), ncol = 3, nrow = 1)
+print(VCaP_cell_proliferation_overtime)
+ggsave("Androgen_VCaP_proliferation_overtime.pdf", height = 3.5, width = 6 , useDingbats = FALSE)
+```
+
+```{r}
+
+pairwise.t.test(d1_d2_summary$Relative_cell_proliferation, d1_d2_summary$Androgens, p.adjust.method = "BH")
+
+pairwise.t.test(d1_d4_summary$Relative_cell_proliferation, d1_d4_summary$Androgens, p.adjust.method = "BH")
+
+pairwise.t.test(d1_d8_summary$Relative_cell_proliferation, d1_d8_summary$Androgens, p.adjust.method = "BH")
+
+```
+
+```{r}
+sessionInfo()
+```
+
+

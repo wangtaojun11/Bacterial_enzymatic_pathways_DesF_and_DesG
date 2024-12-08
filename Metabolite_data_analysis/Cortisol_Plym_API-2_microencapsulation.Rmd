@@ -1,0 +1,92 @@
+---
+title: "Cortisol_Plym_API-2_microencapsulation"
+author: "Taojun Wang"
+date: "11/15/2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+getwd()
+```
+
+```{r warning=FALSE}
+
+library(ggplot2)
+library(ape)
+library(plyr)
+library(RColorBrewer)
+library(reshape2)
+library(scales)
+library(dplyr)
+library(ggpubr) 
+library(cowplot) 
+library(readr)
+library(stats)
+library(readr)
+
+```
+
+```{r}
+d1 <- read.csv("Cortisol_Plym_API-2_microencapsulation.csv") 
+head(d1)
+```
+
+```{r}
+format.A <-  theme_classic()+ theme(plot.title = element_text(size= 11, hjust=0.5, face="bold"))+ 
+  theme(axis.text = element_text(size = 10)) + theme(axis.title = element_text(size = 10, face="bold")) + 
+  theme(strip.text = element_text( size = 10, face= "bold")) + theme(legend.position = "none")
+
+format.B <-  theme_classic()+ theme(plot.title = element_text(size= 11, hjust=0.5, face="bold"))+ 
+  theme(axis.text = element_text(size = 10)) + theme(axis.title = element_text(size = 10, face="bold")) + 
+  theme(strip.text = element_text( size = 10, face= "bold")) 
+```
+
+```{r}
+display.brewer.pal(n = 8, name = 'Dark2')
+brewer.pal(n = 8, name = "Dark2")
+```
+
+```{r}
+d1$Metabolite = factor(d1$Metabolite,order = TRUE, levels = c("Cortisol", "11OHAD", "11OHT"))
+```
+
+```{r}
+d1_summary <- d1 %>%
+  group_by(Metabolite,Time) %>%
+  summarise(
+    
+    SD = sd(Concentration),
+    Concentration = mean(Concentration)
+  )
+
+head(d1_summary)
+# View(d1_summary)
+```
+
+```{r}
+
+p <- ggplot(d1, aes(x = Time, y = Concentration, fill = Metabolite)) +
+  geom_bar(data = d1_summary, aes(y = Concentration), stat = "identity", position = position_dodge(),color="black") +
+  geom_point(position = position_jitterdodge(jitter.width = 0.25, dodge.width = 0.9), aes(color = Metabolite), 
+             shape = 21, size = 3, stroke = 0.5, fill = "white")  + 
+  geom_errorbar(data = d1_summary, aes(ymin = Concentration - SD, ymax = Concentration + SD), 
+                width = .2, position = position_dodge(0.9)) + 
+  scale_fill_manual(values = c( "#D95F02" ,"#7570B3" ,"#E7298A", "#66A61E", "#E6AB02", "#A6761D", "#666666","#1B9E77")) + 
+  scale_color_manual(values = c("black","black" ,"black", "#66A61E", "#E6AB02", "#A6761D", "#666666","#1B9E77")) + ylim(0,15) + 
+  format.B + labs(x="Time (hours)", y="Concentration (nM)")
+
+print(p)
+
+ggsave("Cortisol_Plym_API-2_microencapsulation.pdf", height = 3.5, width = 4)
+
+```
+
+```{r}
+sessionInfo()
+```
+
+

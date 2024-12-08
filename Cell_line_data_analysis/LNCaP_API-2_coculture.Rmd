@@ -1,0 +1,109 @@
+---
+title: "LNCaP_API-2_coculture"
+author: "Taojun Wang"
+date: "2024-11-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+getwd()
+```
+
+```{r warning=FALSE}
+library(ggplot2)
+library(ape)
+library(plyr)
+library(RColorBrewer)
+library(reshape2)
+library(scales)
+library(dplyr)
+library(ggpubr) 
+library(cowplot) 
+library(readr)
+library(stats)
+library(readr)
+```
+
+```{r}
+d1 <- read_csv("LNCaP_API-2_coculture.csv") 
+head(d1)
+```
+
+```{r}
+levels(factor(d1$Group))
+```
+
+```{r}
+d1$Group = factor(d1$Group,order = TRUE, levels = c("VC", "API-2", "Cortisol", "Cortisol_API-2"))
+```
+
+```{r}
+format.A <-  theme_classic()+ theme(plot.title = element_text(size= 11, hjust=0.5, face="bold"))+ 
+  theme(axis.text = element_text(size = 10)) + theme(axis.title = element_text(size = 10, face="bold")) + 
+  theme(strip.text = element_text( size = 10, face= "bold")) + theme(legend.position = "none")
+
+format.B <-  theme_classic()+ theme(plot.title = element_text(size= 11, hjust=0.5, face="bold"))+ 
+  theme(axis.text = element_text(size = 10)) + theme(axis.title = element_text(size = 10, face="bold")) + 
+  theme(strip.text = element_text( size = 10, face= "bold")) 
+```
+
+```{r}
+display.brewer.pal(n = 8, name = 'Dark2')
+brewer.pal(n = 8, name = "Dark2")
+```
+
+```{r}
+d1_summary <- d1 %>%
+  group_by(Group,Replicates) %>%
+  summarise(
+    Mean = mean(Relative_cell_proliferation),
+    SD = sd(Relative_cell_proliferation) 
+  )
+
+d1_summary$Relative_cell_proliferation <- d1_summary$Mean
+head(d1_summary)
+#View(d1_summary)
+
+d1_summary2 <- d1_summary %>%
+  group_by(Group) %>%
+  summarise(
+    Mean = mean(Relative_cell_proliferation),
+    SD = sd(Relative_cell_proliferation) 
+  )
+
+d1_summary2$Relative_cell_proliferation <- d1_summary2$Mean
+head(d1_summary2)
+#View(d1_summary2)
+
+```
+
+```{r}
+
+p <- ggplot(d1_summary, aes(x = Group, y = Relative_cell_proliferation, fill = Group)) +
+  geom_bar(data = d1_summary2, aes(y = Relative_cell_proliferation), stat = "identity", position = position_dodge(),color="black") +
+  geom_point(position = position_jitterdodge(jitter.width = 0.5, dodge.width = 0.9), aes(color = Group), 
+             shape = 21, size = 3, stroke = 0.5, fill = "white")  + 
+  geom_errorbar(data = d1_summary2, aes(ymin = Relative_cell_proliferation - SD, ymax = Relative_cell_proliferation + SD), 
+                width = .2, position = position_dodge(0.9)) + 
+ scale_fill_manual(values = c( "#666666","#666666", "#666666","#666666")) + 
+  scale_color_manual(values = c( "black" ,"black", "black" ,"black")) + ylim(0,3.5) + 
+  format.A + labs(x="Group (10 nM)", y="Relative cell proliferation")
+
+print(p)
+
+ggsave("LNCaP_API-2_coculture.pdf", height = 3.5, width = 2)
+
+```
+
+```{r}
+pairwise.t.test(d1_summary$Relative_cell_proliferation, d1_summary$Group, p.adjust.method = "BH")
+```
+
+```{r}
+sessionInfo()
+```
+

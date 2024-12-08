@@ -1,0 +1,687 @@
+---
+title: "R analysis for RNA-seq"
+output: html_document
+date: "2024-10-16"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+getwd()
+```
+
+```{r}
+library(dplyr)
+library(limma)
+library(edgeR)
+library(ggplot2)
+library(SummarizedExperiment)
+library(Glimma)
+library(data.table)
+library(tximport)
+library(magrittr)
+library(gplots)
+library(WGCNA)
+```
+
+```{r}
+targets <- readTargets("Targets0_desG.txt")
+row.names(targets) <- targets$Sample
+targets     
+```
+
+```{r}
+temp <- load("SalmonSummarizedOutput.RData")
+temp
+```
+
+```{r}
+class(meta_info)
+class(tx.all)
+names(meta_info)
+names(tx.all)
+```
+
+```{r}
+meta_info
+as.data.frame(tx.all)
+```
+
+```{r}
+as.data.frame(tx.all$abundance) %>% head()
+names <- row.names(tx.all$abundance)
+```
+
+```{r}
+abundance2 <- tx.all$abundance
+abundance2 <- as.data.frame(abundance2)
+abundance2$name <- names
+head(abundance2)
+```
+
+```{r}
+colnames(abundance2)
+```
+
+```{r}
+new_order <- c("name", "P_lymph_CORT_1", "P_lymph_CORT_2", "P_lymph_CORT_3", "P_lymph_CORT_4", "P_lymph_CORT_5", "P_lymph_DMSO_1", "P_lymph_DMSO_2", "P_lymph_DMSO_3", "P_lymph_DMSO_4", "P_lymph_DMSO_5", "P_lymph_OHAD_1", "P_lymph_OHAD_2", "P_lymph_OHAD_3", "P_lymph_OHAD_4", "P_lymph_OHAD_5")
+abundance3 <- abundance2[,new_order]
+head(abundance3)
+```
+
+```{r}
+row.names(tx.all$abundance) <- abundance3$name
+row.names(tx.all$counts) <- abundance3$name
+row.names(tx.all$length) <- abundance3$name
+```
+
+```{r}
+dim(meta_info)
+rownames(meta_info)
+```
+
+```{r}
+colnames(tx.all$counts)
+```
+
+```{r}
+rownames(meta_info)
+targets$Sample
+sum(rownames(meta_info) %in% targets$Sample)
+```
+
+```{r}
+temp <- match(targets$Sample, rownames(meta_info))
+temp
+meta_info <- meta_info[temp,]
+tx.all$abundance <- tx.all$abundance[,temp]
+tx.all$counts <- tx.all$counts[,temp]
+tx.all$length <- tx.all$length[,temp]
+```
+
+```{r}
+rownames(meta_info) <- targets$Label
+colnames(tx.all$abundance) <- targets$Label
+colnames(tx.all$counts) <- targets$Label
+colnames(tx.all$length) <- targets$Label
+rownames(targets) <- targets$Label
+```
+
+```{r}
+meta_info$num_mapped <- as.numeric(meta_info$num_mapped)
+data.frame(mapped = meta_info$num_mapped)
+targets$NumberReads
+ReadFateSalmon <- data.frame(mapped = meta_info$num_mapped) / targets$NumberReads * 100
+ReadFateSalmon
+```
+
+```{r}
+summary(ReadFateSalmon)
+```
+
+```{r}
+ReadFateSalmon$Label <- targets$Label
+ReadFateSalmon$Group <- targets$Group
+```
+
+```{r}
+format.A <-  theme_classic()+ theme(plot.title = element_text(size= 11, hjust=0.5, face="bold"))+ 
+  theme(axis.text = element_text(size = 10)) + theme(axis.title = element_text(size = 10, face="bold")) + 
+  theme(strip.text = element_text( size = 10, face= "bold")) + theme(legend.position = "none")
+
+format.B <-  theme_classic()+ theme(plot.title = element_text(size= 11, hjust=0.5, face="bold"))+ 
+  theme(axis.text = element_text(size = 10)) + theme(axis.title = element_text(size = 10, face="bold")) + 
+  theme(strip.text = element_text( size = 10, face= "bold"))
+```
+
+```{r}
+p <- ggplot(data = ReadFateSalmon,
+       aes(x = Label, y = mapped, fill = Group)) +
+  geom_bar(stat = "identity", position = position_dodge()) +  scale_y_continuous(breaks = seq(0,100,by = 20), limits = c(0,100))+
+      format.B + labs(x="Samples", y="Mapped (%)") + theme(axis.text.x = element_text(angle = 30, hjust = 1))  
+
+print(p)
+
+ggsave("reads_mapped.pdf", height = 3.5, width = 6)
+
+```
+
+```{r}
+ggplot(data = ReadFateSalmon,
+       aes(x = Label, y = mapped, fill = Group)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  ggtitle("Salmon alignment rates") + 
+  ylab("Percentage") + 
+  xlab("Sample") + 
+  scale_y_continuous(breaks = seq(0,100,by = 10), limits = c(0,100))
+```
+
+```{r}
+getwd()
+```
+
+```{r}
+all_tx_info <- read.csv("P.lym_API-1.csv")
+dim(all_tx_info)
+head(all_tx_info)
+sum(rownames(tx.all$counts) %in% all_tx_info$transcript_id)
+```
+
+```{r}
+tx.all$counts[!(rownames(tx.all$counts) %in% all_tx_info$transcript_id),]
+```
+
+```{r}
+all_tx_info <- subset(all_tx_info,transcript_id != "NA")
+```
+
+```{r}
+all_tx_info <- all_tx_info[!duplicated(all_tx_info$transcript_id), ]
+rownames(all_tx_info) <- all_tx_info$transcript_id
+```
+
+```{r}
+class(meta_info)
+class(tx.all)
+names(meta_info)
+names(tx.all)
+```
+
+```{r}
+gene_all <- tximport::summarizeToGene(tx.all, 
+                                      all_tx_info, 
+                                      countsFromAbundance = "lengthScaledTPM")
+head(gene_all)
+```
+
+```{r}
+class(gene_all)
+names(gene_all)
+```
+
+```{r}
+head(gene_all$counts)
+```
+
+```{r}
+head(all_tx_info)
+```
+
+```{r}
+all_gene_info <- all_tx_info[!duplicated(all_tx_info$gene_id), -1 ]
+```
+
+```{r}
+temp <- distinct(all_tx_info, gene_id, .keep_all = TRUE) %>%
+           select(-transcript_id)
+temp
+```
+
+```{r}
+rownames(targets) <- targets$Label
+targets$Label
+colnames(gene_all$counts)
+all.equal(as.character(targets$Label), colnames(gene_all$counts))
+```
+
+```{r}
+all.equal(all_gene_info$gene_id, rownames(gene_all$counts))
+```
+
+```{r}
+common_elements <- intersect(all_gene_info$gene_id, rownames(gene_all$counts))
+```
+
+```{r}
+sum(!rownames(gene_all$counts) %in% all_gene_info$gene_id)
+```
+
+```{r}
+head(targets)
+rownames(meta_info)
+head(meta_info)
+```
+
+```{r}
+targets$Sample
+rownames(meta_info)
+```
+
+```{r}
+temp <- match(targets$Label, rownames(meta_info))
+temp
+meta_info <- meta_info[temp,]
+```
+
+```{r}
+temp <- match(rownames(gene_all$counts), all_gene_info$gene_id)
+temp
+all_gene_info <- all_gene_info[temp,]
+all.equal(all_gene_info$gene_id, rownames(gene_all$counts))
+```
+
+```{r}
+all_gene_info
+```
+
+```{r}
+d <- DGEList(counts = gene_all$counts, 
+             samples = targets,
+             genes = all_gene_info)
+
+d
+```
+
+```{r}
+head(d$counts)
+head(d$samples)
+head(d$genes)
+```
+
+```{r}
+rownames(targets) <- colnames(gene_all$counts)
+head(as.data.frame(gene_all$counts))
+head(all_gene_info)
+head(targets)
+```
+
+```{r}
+se <- SummarizedExperiment(assays = list(counts = gene_all$counts),
+                           colData = targets,
+                           rowData = all_gene_info)
+se
+```
+
+```{r}
+methods(class = SummarizedExperiment)
+```
+
+```{r}
+head(assay(se, "counts"))
+colData(se)
+rowData(se)
+se$Group
+```
+
+```{r}
+se$lib.size <- assay(se, "counts") %>%  colSums()
+head(se$lib.size)
+```
+
+```{r}
+head(se)
+```
+
+```{r}
+dim(se)
+```
+
+```{r}
+head(assay(se, "counts"))
+colData(se)
+rowData(se)
+```
+
+```{r}
+summary(assay(se, "counts"))
+```
+
+```{r}
+temp <- apply(assay(se, "counts"), 2, max) / se$lib.size * 100
+temp
+```
+
+```{r}
+p<- barplot(temp, col = se$col, 
+        ylab = "Percentage of total reads")
+print(p)
+```
+
+```{r}
+barplot(temp, col = se$col, 
+        ylab = "Percentage of total reads",
+        ylim = c(0, 100))
+```
+
+```{r}
+colData(se) %>%
+  as.data.frame() %>%
+ggplot(aes(x = Label, y = lib.size / 1e6, fill = Group)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  ggtitle("Library sizes") + 
+  ylab("Millions of reads") + 
+  xlab("Sample") 
+```
+
+```{r}
+plotDensities(assay(se, "counts"), 
+               group = se$Group, 
+               col = 1:6, 
+               main = "raw counts")
+```
+
+```{r}
+raw_log <- log2( assay(se, "counts") + 1 )
+plotDensities( raw_log, 
+               group = se$Group, 
+               col = 1:6,
+               main = "log2(raw counts + 1)" )
+```
+
+```{r}
+plotMDS(se, 
+        main = "MDS plot", 
+        col = se$col, 
+        top = 5000, 
+        prior.count = 2 )
+```
+
+```{r}
+cpm_values <- cpm(se)
+head(cpm_values)
+```
+
+```{r}
+range(se$lib.size / 1e6)
+10 / min(se$lib.size / 1e6)
+```
+
+```{r}
+min_cpm <- 0.5
+```
+
+```{r}
+aboveCPM <- rowSums(cpm_values  >= min_cpm)
+head(aboveCPM)
+```
+
+```{r}
+head(cpm_values)
+head(cpm_values) >= min_cpm
+rowSums(head(cpm_values) >= min_cpm)
+
+```
+
+```{r}
+as.data.frame(aboveCPM)
+table(aboveCPM)
+```
+
+```{r}
+hist(aboveCPM, 
+     xlab = "Number of samples with > min_cpm", 
+     ylab = "Number of genes")
+```
+
+```{r}
+table(se$Group)
+```
+
+```{r}
+min_samp <- table(se$Group) %>% min()
+min_samp
+```
+
+```{r}
+min_samp
+sum(aboveCPM > 0)
+sum(aboveCPM >= min_samp)
+mean(aboveCPM >= min_samp) 
+```
+
+```{r}
+table(aboveCPM > 0)
+```
+
+```{r}
+head(se)
+se_filt <- se[aboveCPM > 0, ]
+dim(se_filt)
+```
+
+```{r}
+se_filt$lib.size <- assay(se_filt, "counts") %>%  colSums()
+se_filt$lib.size / se$lib.size * 100
+nrow(se_filt) / nrow(se) * 100
+```
+
+```{r}
+se_filt$norm.factors <- assay(se_filt, "counts") %>% calcNormFactors()
+se_filt$norm.factors
+```
+
+```{r}
+raw_log_filt <- log2( assay(se_filt, "counts") + 1 )
+plotDensities( raw_log_filt, 
+               group = se_filt$Group, 
+               col = 1:6,
+               main = "log2(raw counts + 1)" )
+```
+
+```{r}
+logCPM <- cpm(se_filt, 
+              lib.size = se_filt$lib.size * se_filt$norm.factors + 1,
+              log = TRUE, 
+              prior.count = 2)
+class(logCPM)
+dim(logCPM)
+head(logCPM)
+```
+
+```{r}
+plotMDS(logCPM, 
+        main = "MDS plot", 
+        col = se$col, 
+        top = 5000)
+
+```
+
+```{r}
+glimmaMDS(logCPM, top = 5000, 
+          groups = colData(se_filt),
+          html = "MDS-Plot_normalized.html")
+
+```
+
+```{r}
+glimmaMDS(logCPM, top = 5000, 
+          groups = colData(se_filt),
+          html = "MDS-Plot_normalized2.html",
+          height = 700)
+```
+
+```{r}
+getwd()
+```
+
+```{r}
+glMDSPlot(logCPM, top = 5000,
+          groups = colData(se_filt),
+          folder = "Figures/glimma-plots",
+          html = "MDS-Plot_old",
+          launch = FALSE)
+```
+
+```{r}
+table(se_filt$Group)
+```
+
+```{r}
+design <- model.matrix(~ 0 + se_filt$Group)
+design
+
+```
+
+```{r}
+levels(as.factor(se_filt$Group))
+```
+
+```{r}
+colnames(design) <- levels(as.factor(se_filt$Group))
+colnames(design)
+
+rownames(design) <- se_filt$Label
+rownames(design)
+design
+```
+
+```{r}
+cont_matrix <- makeContrasts(DMSOvsCORT = CORT - DMSO,
+                             DMSOvsOHAD = OHAD - DMSO,
+                             OHADvsCORT = CORT - OHAD,
+                             levels=design)
+cont_matrix
+```
+
+```{r}
+
+e <- new("EList", list(E =logCPM, 
+                       genes=rowData(se_filt), 
+                       targets=colData(se_filt)))
+
+fit_trend <- lmFit(e, design)
+
+```
+
+```{r}
+names(fit_trend)   
+head(fit_trend$coefficients)  
+```
+
+```{r}
+fit_trend2 <- contrasts.fit(fit_trend, cont_matrix)
+names(fit_trend2)
+head(fit_trend2$coefficients)  
+```
+
+```{r}
+fit_trend2 <- eBayes(fit_trend2, trend = TRUE)
+names(fit_trend2)  
+```
+
+```{r}
+?decideTests   
+trend_coded <- decideTests(fit_trend2) 
+head(trend_coded)     
+summary(trend_coded)   
+```
+
+```{r}
+
+?decideTests   
+trend_coded <- decideTests(fit_trend2, p.value = 0.05) 
+head(trend_coded)     
+summary(trend_coded)  
+
+```
+
+```{r}
+hist(fit_trend2$p.value, 1000)
+p.adjust(fit_trend2$p.value, "fdr") %>%
+  hist(1000, xlim = c(0,1))
+```
+
+```{r}
+trend_global <- decideTests(fit_trend2, p.value = 0.05, method = "global") 
+summary(trend_global)
+```
+
+```{r}
+?topTable
+topTable(fit_trend2, coef = 1)
+```
+
+```{r}
+trend.DMSOvsCORT.detailed <- topTable(fit_trend2, 
+                                      coef = "DMSOvsCORT", 
+                                      number = Inf,
+                                      adjust.method = "BH",
+                                      sort.by = "none")
+
+
+trend.DMSOvsOHAD.detailed <- topTable(fit_trend2, 
+                                      coef = "DMSOvsOHAD", 
+                                      number = Inf,
+                                      adjust.method = "BH",
+                                      sort.by = "none")
+
+
+trend.OHADvsCORT.detailed <- topTable(fit_trend2, 
+                                      coef = "OHADvsCORT", 
+                                      number = Inf,
+                                      adjust.method = "BH",
+                                      sort.by = "none")
+```
+
+```{r}
+getwd()
+```
+
+```{r}
+
+trend.DMSOvsCORT.detailed$FC <- 2 ^ abs(trend.DMSOvsCORT.detailed$logFC) * 
+  sign(trend.DMSOvsCORT.detailed$logFC)
+
+head(trend.DMSOvsCORT.detailed)
+
+write.table(trend.DMSOvsCORT.detailed, 
+            file = "DMSOvsCORT_results.txt", 
+            row.names = FALSE, sep = "\t")
+
+trend.DMSOvsOHAD.detailed$FC <- 2 ^ abs(trend.DMSOvsOHAD.detailed$logFC) * 
+  sign(trend.DMSOvsOHAD.detailed$logFC)
+
+head(trend.DMSOvsOHAD.detailed)
+
+write.table(trend.DMSOvsOHAD.detailed, 
+            file = "DMSOvsOHAD_results.txt", 
+            row.names = FALSE, sep = "\t")
+
+
+trend.OHADvsCORT.detailed$FC <- 2 ^ abs(trend.OHADvsCORT.detailed$logFC) * 
+  sign(trend.OHADvsCORT.detailed$logFC)
+
+head(trend.OHADvsCORT.detailed)
+
+write.table(trend.OHADvsCORT.detailed, 
+            file = "OHADvsCORT_results.txt", 
+            row.names = FALSE, sep = "\t")
+
+```
+
+
+```{r}
+source("summarizeFit.R")
+```
+
+```{r}
+
+all_results <- summarizeFit(fit_trend2)
+
+all_results_global <- summarizeFit(fit_trend2,
+                                   calcFC = FALSE,
+                                   method = "global")
+
+```
+
+```{r}
+
+all_results <- summarizeFit(fit_trend2)
+
+
+all_results_separate <- summarizeFit(fit_trend2,
+                                   calcFC = FALSE,
+                                   method = "separate")
+
+```
+
+```{r}
+write.csv(all_results_separate, "all_comparision_separate.csv")
+```
+
+```{r}
+sessionInfo()
+```
+

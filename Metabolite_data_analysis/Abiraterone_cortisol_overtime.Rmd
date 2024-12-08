@@ -1,0 +1,247 @@
+---
+title: "Abiraterone_cortisol_overtime"
+author: "Taojun Wang"
+date: "11/15/2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+getwd()
+```
+
+```{r warning=FALSE}
+library(ggplot2)
+library(ape)
+library(plyr)
+library(RColorBrewer)
+library(reshape2)
+library(scales)
+library(dplyr)
+library(ggpubr) 
+library(cowplot) 
+library(readr)
+library(stats)
+library(readr)
+```
+
+```{r}
+d1 <- read.csv("Abiraterone_cortisol_overtime.csv") 
+head(d1)
+```
+
+```{r}
+format.A <-  theme_classic()+ theme(plot.title = element_text(size= 11, hjust=0.5, face="bold"))+ 
+  theme(axis.text = element_text(size = 10)) + theme(axis.title = element_text(size = 10, face="bold")) + 
+  theme(strip.text = element_text( size = 10, face= "bold")) + theme(legend.position = "none")
+
+format.B <-  theme_classic()+ theme(plot.title = element_text(size= 11, hjust=0.5, face="bold"))+ 
+  theme(axis.text = element_text(size = 10)) + theme(axis.title = element_text(size = 10, face="bold")) + 
+  theme(strip.text = element_text( size = 10, face= "bold")) 
+```
+
+```{r}
+display.brewer.pal(n = 8, name = 'Dark2')
+brewer.pal(n = 8, name = "Dark2")
+```
+
+```{r}
+d1$Group = factor(d1$Group,order = TRUE, levels = c("Control", "Abiraterone"))
+```
+
+```{r}
+d1_Plym <- subset(d1, Strain == "Plym")
+d1_Csci <- subset(d1, Strain == "Csci")
+```
+
+```{r}
+d1_Plym_summary <- d1_Plym %>%
+  group_by(Group,Time) %>%
+  summarise(
+    
+    Cortisol_sd = sd(Cortisol),
+    OHAD_sd = sd(OHAD),
+    OHT_sd = sd(OHT),
+    
+    Cortisol = mean(Cortisol),
+    OHAD = mean(OHAD),
+    OHT = mean(OHT)
+  )
+
+head(d1_Plym_summary)
+View(d1_Plym_summary)
+
+```
+
+```{r}
+
+p1 <- ggplot(d1_Plym, aes(x = Time, y = Cortisol, fill = Group)) +
+  geom_bar(data = d1_Plym_summary, aes(y = Cortisol), stat = "identity", position = position_dodge(),color="black") +
+  geom_point(position = position_jitterdodge(jitter.width = 0.5, dodge.width = 0.9), aes(color = Group), 
+             shape = 21, size = 3, stroke = 0.5, fill = "white")  + 
+  geom_errorbar(data = d1_Plym_summary, aes(ymin = Cortisol - Cortisol_sd, ymax = Cortisol + Cortisol_sd), 
+                width = .2, position = position_dodge(0.9)) + 
+  scale_fill_manual(values = c( "#D95F02" ,"#7570B3" ,"#E7298A","#66A61E", "#E6AB02", "#A6761D", "#666666")) + 
+  scale_color_manual(values = c( "black" ,"black" ,"black", "#66A61E", "#E6AB02", "#A6761D", "#666666","#1B9E77"))  + ylim(0,60) +
+  format.B + labs(x="Time", y="Cortisol (uM)") 
+
+print(p1)
+
+ggsave("Plym_Abiraterone_cortisol.pdf", height = 3.5, width = 3.6)
+
+```
+
+```{r}
+
+p2 <- ggplot(d1_Plym, aes(x = Time, y = OHAD, fill = Group)) +
+  geom_bar(data = d1_Plym_summary, aes(y = OHAD), stat = "identity", position = position_dodge(),color="black") +
+  geom_point(position = position_jitterdodge(jitter.width = 0.5, dodge.width = 0.9), aes(color = Group), 
+             shape = 21, size = 3, stroke = 0.5, fill = "white")  + 
+  geom_errorbar(data = d1_Plym_summary, aes(ymin = OHAD - OHAD_sd, ymax = OHAD + OHAD_sd), 
+                width = .2, position = position_dodge(0.9)) + 
+  scale_fill_manual(values = c( "#D95F02" ,"#7570B3" ,"#E7298A","#66A61E", "#E6AB02", "#A6761D", "#666666")) + 
+  scale_color_manual(values = c( "black" ,"black" ,"black", "#66A61E", "#E6AB02", "#A6761D", "#666666","#1B9E77"))  + ylim(0,60) +
+  format.B + labs(x="Time", y="11OHAD (uM)") 
+
+print(p2)
+
+ggsave("Plym_Abiraterone_OHAD.pdf", height = 3.5, width = 3.6)
+
+```
+
+```{r}
+
+p3 <- ggplot(d1_Plym, aes(x = Time, y = OHT, fill = Group)) +
+  geom_bar(data = d1_Plym_summary, aes(y = OHT), stat = "identity", position = position_dodge(),color="black") +
+  geom_point(position = position_jitterdodge(jitter.width = 0.5, dodge.width = 0.9), aes(color = Group), 
+             shape = 21, size = 3, stroke = 0.5, fill = "white")  + 
+  geom_errorbar(data = d1_Plym_summary, aes(ymin = OHT - OHT_sd, ymax = OHT + OHT_sd), 
+                width = .2, position = position_dodge(0.9)) + 
+  scale_fill_manual(values = c( "#D95F02" ,"#7570B3" ,"#E7298A","#66A61E", "#E6AB02", "#A6761D", "#666666")) + 
+  scale_color_manual(values = c( "black" ,"black" ,"black", "#66A61E", "#E6AB02", "#A6761D", "#666666","#1B9E77"))  + ylim(0,60) +
+  format.B + labs(x="Time", y="11OHT (uM)") 
+
+print(p3)
+
+ggsave("Plym_Abiraterone_OHT.pdf", height = 3.5, width = 3.6)
+
+```
+
+```{r}
+
+d1_Csci_summary <- d1_Csci %>%
+  group_by(Group,Time) %>%
+  summarise(
+    
+    Cortisol_sd = sd(Cortisol),
+    OHAD_sd = sd(OHAD),
+    OHT_sd = sd(OHT),
+    
+    Cortisol = mean(Cortisol),
+    OHAD = mean(OHAD),
+    OHT = mean(OHT)
+
+  )
+
+head(d1_Csci_summary)
+View(d1_Csci_summary)
+
+```
+
+```{r}
+
+p4 <- ggplot(d1_Csci, aes(x = Time, y = Cortisol, fill = Group)) +
+  geom_bar(data = d1_Csci_summary, aes(y = Cortisol), stat = "identity", position = position_dodge(),color="black") +
+  geom_point(position = position_jitterdodge(jitter.width = 0.5, dodge.width = 0.9), aes(color = Group), 
+             shape = 21, size = 3, stroke = 0.5, fill = "white")  + 
+  geom_errorbar(data = d1_Csci_summary, aes(ymin = Cortisol - Cortisol_sd, ymax = Cortisol + Cortisol_sd), 
+                width = .2, position = position_dodge(0.9)) + 
+  scale_fill_manual(values = c( "#D95F02" ,"#7570B3" ,"#E7298A","#66A61E", "#E6AB02", "#A6761D", "#666666")) + 
+  scale_color_manual(values = c( "black" ,"black" ,"black", "#66A61E", "#E6AB02", "#A6761D", "#666666","#1B9E77"))  + ylim(0,60) +
+  format.B + labs(x="Time", y="Cortisol (uM)") 
+
+print(p4)
+
+ggsave("Csci_Abiraterone_cortisol.pdf", height = 3.5, width = 3.6)
+
+```
+
+```{r}
+p5 <- ggplot(d1_Csci, aes(x = Time, y = OHAD, fill = Group)) +
+  geom_bar(data = d1_Csci_summary, aes(y = OHAD), stat = "identity", position = position_dodge(),color="black") +
+  geom_point(position = position_jitterdodge(jitter.width = 0.5, dodge.width = 0.9), aes(color = Group), 
+             shape = 21, size = 3, stroke = 0.5, fill = "white")  + 
+  geom_errorbar(data = d1_Csci_summary, aes(ymin = OHAD - OHAD_sd, ymax = OHAD + OHAD_sd), 
+                width = .2, position = position_dodge(0.9)) + 
+  scale_fill_manual(values = c( "#D95F02" ,"#7570B3" ,"#E7298A","#66A61E", "#E6AB02", "#A6761D", "#666666")) + 
+  scale_color_manual(values = c( "black" ,"black" ,"black", "#66A61E", "#E6AB02", "#A6761D", "#666666","#1B9E77"))  + ylim(0,60) +
+  format.B + labs(x="Time", y="11OHAD (uM)") 
+
+print(p5)
+
+ggsave("Csci_Abiraterone_OHAD.pdf", height = 3.5, width = 3.6)
+
+```
+
+```{r}
+
+p6 <- ggplot(d1_Csci, aes(x = Time, y = OHT, fill = Group)) +
+  geom_bar(data = d1_Csci_summary, aes(y = OHT), stat = "identity", position = position_dodge(),color="black") +
+  geom_point(position = position_jitterdodge(jitter.width = 0.5, dodge.width = 0.9), aes(color = Group), 
+             shape = 21, size = 3, stroke = 0.5, fill = "white")  + 
+  geom_errorbar(data = d1_Csci_summary, aes(ymin = OHT - OHT_sd, ymax = OHT + OHT_sd), 
+                width = .2, position = position_dodge(0.9)) + 
+  scale_fill_manual(values = c( "#D95F02" ,"#7570B3" ,"#E7298A","#66A61E", "#E6AB02", "#A6761D", "#666666")) + 
+  scale_color_manual(values = c( "black" ,"black" ,"black", "#66A61E", "#E6AB02", "#A6761D", "#666666","#1B9E77"))  + ylim(0,60) +
+  format.B + labs(x="Time", y="11OHT (uM)") 
+
+print(p6)
+
+ggsave("Csci_Abiraterone_OHT.pdf", height = 3.5, width = 3.6)
+
+```
+
+```{r}
+d1_Plym <- subset(d1, Strain == "Plym")
+d1_Csci <- subset(d1, Strain == "Csci")
+```
+
+
+```{r}
+d1_Plym_0h <- subset(d1_Plym, Time == "0h")
+d1_Plym_72h <- subset(d1_Plym, Time == "72h")
+
+pairwise.t.test(d1_Plym_0h$Cortisol, d1_Plym_0h$Group, p.adjust.method = "BH")
+pairwise.t.test(d1_Plym_72h$Cortisol, d1_Plym_72h$Group, p.adjust.method = "BH")
+
+pairwise.t.test(d1_Plym_0h$OHAD, d1_Plym_0h$Group, p.adjust.method = "BH")
+pairwise.t.test(d1_Plym_72h$OHAD, d1_Plym_72h$Group, p.adjust.method = "BH")
+
+pairwise.t.test(d1_Plym_0h$OHT, d1_Plym_0h$Group, p.adjust.method = "BH")
+pairwise.t.test(d1_Plym_72h$OHT, d1_Plym_72h$Group, p.adjust.method = "BH")
+
+```
+
+```{r}
+d1_Csci_0h <- subset(d1_Csci, Time == "0h")
+d1_Csci_72h <- subset(d1_Csci, Time == "72h")
+
+pairwise.t.test(d1_Csci_0h$Cortisol, d1_Csci_0h$Group, p.adjust.method = "BH")
+pairwise.t.test(d1_Csci_72h$Cortisol, d1_Csci_72h$Group, p.adjust.method = "BH")
+
+pairwise.t.test(d1_Csci_0h$OHAD, d1_Csci_0h$Group, p.adjust.method = "BH")
+pairwise.t.test(d1_Csci_72h$OHAD, d1_Csci_72h$Group, p.adjust.method = "BH")
+
+pairwise.t.test(d1_Csci_0h$OHT, d1_Csci_0h$Group, p.adjust.method = "BH")
+pairwise.t.test(d1_Csci_72h$OHT, d1_Csci_72h$Group, p.adjust.method = "BH")
+
+```
+
+```{r}
+sessionInfo()
+```
+
+

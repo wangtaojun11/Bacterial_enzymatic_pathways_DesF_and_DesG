@@ -1,0 +1,135 @@
+---
+title: "AT metabolism_API-2"
+author: "Taojun Wang"
+date: "11/15/2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+getwd()
+```
+
+```{r warning=FALSE}
+
+library(ggplot2)
+library(ape)
+library(plyr)
+library(RColorBrewer)
+library(reshape2)
+library(scales)
+library(dplyr)
+library(ggpubr) 
+library(cowplot) 
+library(readr)
+library(stats)
+library(readr)
+
+```
+
+```{r}
+d1 <- read.csv("AT metabolism_API-2.csv") 
+head(d1)
+```
+
+```{r}
+format.A <-  theme_classic()+ theme(plot.title = element_text(size= 11, hjust=0.5, face="bold"))+ 
+  theme(axis.text = element_text(size = 10)) + theme(axis.title = element_text(size = 10, face="bold")) + 
+  theme(strip.text = element_text( size = 10, face= "bold")) + theme(legend.position = "none")
+
+format.B <-  theme_classic()+ theme(plot.title = element_text(size= 11, hjust=0.5, face="bold"))+ 
+  theme(axis.text = element_text(size = 10)) + theme(axis.title = element_text(size = 10, face="bold")) + 
+  theme(strip.text = element_text( size = 10, face= "bold"))  
+```
+
+```{r}
+display.brewer.pal(n = 8, name = 'Dark2')
+brewer.pal(n = 8, name = "Dark2")
+```
+
+```{r}
+d1$Time = factor(d1$Time,order = TRUE, levels = c("0h", "24h", "48h", "72h"))
+```
+
+```{r}
+d1_AT <- subset(d1, Androgens == "AT")
+d1_ATT <- subset(d1, Androgens == "ATT")
+```
+
+```{r}
+d1_AT_summary <- d1_AT %>%
+  group_by(Time) %>%
+  summarise(
+    Mean = mean(Under_Curve_Area),
+    SD = sd(Under_Curve_Area)
+  )
+
+d1_AT_summary$Under_Curve_Area <- d1_AT_summary$Mean
+head(d1_AT_summary)
+#View(d1_AT_summary)
+
+```
+
+```{r}
+
+  p_AT <- ggplot(d1_AT, aes(x = Time, y = Under_Curve_Area)) +
+  geom_bar(data = d1_AT_summary, aes(y = Under_Curve_Area), stat = "identity", position = position_dodge(),color="black") +
+  geom_point(position = position_jitterdodge(jitter.width = 0.5, dodge.width = 0.9), aes(color = Time), 
+             shape = 21, size = 3, stroke = 0.5, fill = "white")  + 
+  geom_errorbar(data = d1_AT_summary, aes(ymin = Under_Curve_Area - SD, ymax = Under_Curve_Area + SD), 
+                width = .2, position = position_dodge(0.9)) + 
+  scale_fill_manual(values = c( "#D95F02" ,"#7570B3" ,"#E7298A", "#66A61E", "#E6AB02", "#A6761D", "#666666","#1B9E77")) + 
+  scale_color_manual(values = c("black","black" ,"black", "black", "#E6AB02", "#A6761D", "#666666","#1B9E77")) + ylim(0,15000) + 
+  format.A + labs(x="Time (hours)", y="Under Curve Area")
+
+print(p_AT)
+   
+ggsave("AT_API-2.pdf", height = 3.5, width = 3, useDingbats = FALSE)
+
+```
+
+```{r}
+d1_ATT_summary <- d1_ATT %>%
+  group_by(Time) %>%
+  summarise(
+    Mean = mean(Under_Curve_Area),
+    SD = sd(Under_Curve_Area)
+  )
+
+d1_ATT_summary$Under_Curve_Area <- d1_ATT_summary$Mean
+head(d1_ATT_summary)
+#View(d1_ATT_summary)
+
+```
+
+```{r}
+
+  p_ATT <- ggplot(d1_ATT, aes(x = Time, y = Under_Curve_Area)) +
+  geom_bar(data = d1_ATT_summary, aes(y = Under_Curve_Area), stat = "identity", position = position_dodge(),color="black") +
+  geom_point(position = position_jitterdodge(jitter.width = 0.5, dodge.width = 0.9), aes(color = Time), 
+             shape = 21, size = 3, stroke = 0.5, fill = "white")  + 
+  geom_errorbar(data = d1_ATT_summary, aes(ymin = Under_Curve_Area - SD, ymax = Under_Curve_Area + SD), 
+                width = .2, position = position_dodge(0.9)) + 
+  scale_fill_manual(values = c( "#D95F02" ,"#7570B3" ,"#E7298A", "#66A61E", "#E6AB02", "#A6761D", "#666666","#1B9E77")) + 
+  scale_color_manual(values = c("black","black" ,"black", "black", "#E6AB02", "#A6761D", "#666666","#1B9E77")) + ylim(0,15000) + 
+  format.A + labs(x="Time (hours)", y="Under Curve Area")
+
+print(p_ATT)
+   
+ggsave("ATT_API-2.pdf", height = 3.5, width = 3, useDingbats = FALSE)
+
+```
+
+```{r}
+pairwise.t.test(d1_AT$Under_Curve_Area, d1_AT$Time, p.adjust.method = "BH")
+pairwise.t.test(d1_ATT$Under_Curve_Area, d1_ATT$Time, p.adjust.method = "BH")
+```
+
+```{r}
+sessionInfo()
+```
+
+

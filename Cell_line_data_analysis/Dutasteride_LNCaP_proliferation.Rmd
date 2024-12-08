@@ -1,0 +1,129 @@
+---
+title: "Dutasteride_LNCaP_proliferation"
+author: "Taojun Wang"
+date: "2024-11-07"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+getwd()
+```
+
+```{r warning=FALSE}
+library(ggplot2)
+library(ape)
+library(plyr)
+library(RColorBrewer)
+library(reshape2)
+library(scales)
+library(dplyr)
+library(ggpubr) 
+library(cowplot) 
+library(readr)
+library(stats)
+library(readr)
+```
+
+# Load the data
+```{r}
+d1 <- read_csv("Dutasteride_LNCaP_proliferation.csv") 
+head(d1)
+```
+
+```{r}
+levels(factor(d1$Androgens))
+```
+
+```{r}
+d1$Androgens = factor(d1$Androgens,order = TRUE, levels = c( "VC", "T", "DHT",  "epiT", "epiDHT" ))
+```
+
+```{r}
+format.A <-  theme_classic()+ theme(plot.title = element_text(size= 11, hjust=0.5, face="bold"))+ 
+  theme(axis.text = element_text(size = 10)) + theme(axis.title = element_text(size = 10, face="bold")) + 
+  theme(strip.text = element_text( size = 10, face= "bold")) + theme(legend.position = "none")
+
+format.B <-  theme_classic()+ theme(plot.title = element_text(size= 11, hjust=0.5, face="bold"))+ 
+  theme(axis.text = element_text(size = 10)) + theme(axis.title = element_text(size = 10, face="bold")) + 
+  theme(strip.text = element_text( size = 10, face= "bold")) 
+```
+
+```{r}
+display.brewer.pal(n = 8, name = 'Dark2')
+brewer.pal(n = 8, name = "Dark2")
+```
+
+```{r}
+d1_summary <- d1 %>%
+  group_by(Androgens,Dutasteride,Replicates) %>%
+  summarise(
+    Mean = mean(Relative_cell_proliferation),
+    SD = sd(Relative_cell_proliferation) 
+  )
+
+d1_summary$Relative_cell_proliferation <- d1_summary$Mean
+head(d1_summary)
+#View(d1_summary)
+
+d1_summary2 <- d1_summary %>%
+  group_by(Androgens,Dutasteride) %>%
+  summarise(
+    Mean = mean(Relative_cell_proliferation),
+    SD = sd(Relative_cell_proliferation) 
+  )
+
+d1_summary2$Relative_cell_proliferation <- d1_summary2$Mean
+head(d1_summary2)
+#View(d1_summary2)
+
+```
+
+```{r}
+p <- ggplot(d1_summary, aes(x = Androgens, y = Relative_cell_proliferation, fill = Dutasteride)) +
+  geom_bar(data = d1_summary2, aes(y = Relative_cell_proliferation), stat = "identity", position = position_dodge(),color="black") +
+  geom_point(position = position_jitterdodge(jitter.width = 0.2, dodge.width = 0.9), aes(color = Dutasteride), 
+             shape = 21, size = 3, stroke = 0.5, fill = "white")  + 
+  geom_errorbar(data = d1_summary2, aes(ymin = Relative_cell_proliferation - SD, ymax = Relative_cell_proliferation + SD), 
+                width = .2, position = position_dodge(0.9)) + 
+  scale_fill_manual(values = c( "#D95F02" ,"#7570B3" ,"#E7298A", "#66A61E", "#E6AB02", "#A6761D", "#666666","#1B9E77")) + 
+  scale_color_manual(values = c( "black" ,"black" ,"#E7298A", "#66A61E", "#E6AB02", "#A6761D", "#666666","#1B9E77")) + ylim(0,3) + 
+  format.B + labs(x="Androgens (10 nM)", y="Relative cell proliferation")
+
+print(p)
+
+ggsave("Dutasteride_LNCaP_proliferation.pdf", height = 3.5, width = 5)
+
+```
+
+```{r}
+
+d1_summary_0nM <- subset(d1_summary, Dutasteride == "0nM")
+pairwise.t.test(d1_summary_0nM$Relative_cell_proliferation, d1_summary_0nM$Androgens, p.adjust.method = "BH")
+
+d1_summary_100nM <- subset(d1_summary, Dutasteride == "100nM")
+pairwise.t.test(d1_summary_100nM$Relative_cell_proliferation, d1_summary_100nM$Androgens, p.adjust.method = "BH")
+
+d1_summary_VC <- subset(d1_summary, Androgens == "VC")
+pairwise.t.test(d1_summary_VC$Relative_cell_proliferation, d1_summary_VC$Dutasteride, p.adjust.method = "BH")
+
+d1_summary_T <- subset(d1_summary, Androgens == "T")
+pairwise.t.test(d1_summary_T$Relative_cell_proliferation, d1_summary_T$Dutasteride, p.adjust.method = "BH")
+
+d1_summary_DHT <- subset(d1_summary, Androgens == "DHT")
+pairwise.t.test(d1_summary_DHT$Relative_cell_proliferation, d1_summary_DHT$Dutasteride, p.adjust.method = "BH")
+
+d1_summary_epiT <- subset(d1_summary, Androgens == "epiT")
+pairwise.t.test(d1_summary_epiT$Relative_cell_proliferation, d1_summary_epiT$Dutasteride, p.adjust.method = "BH")
+
+d1_summary_epiDHT <- subset(d1_summary, Androgens == "epiDHT")
+pairwise.t.test(d1_summary_epiDHT$Relative_cell_proliferation, d1_summary_epiDHT$Dutasteride, p.adjust.method = "BH")
+```
+
+```{r}
+sessionInfo()
+```
+

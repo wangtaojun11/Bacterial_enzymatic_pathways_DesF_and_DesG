@@ -1,0 +1,113 @@
+---
+title: "Objects"
+output: html_document
+date: "2024-10-16"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+getwd()
+library(rtracklayer)
+library(magrittr)
+```
+
+```{r}
+gtf0 <- import("P.lym_API-1.gtf")
+gtf0
+```
+
+```{r}
+names(mcols(gtf0)) 
+```
+
+```{r}
+str(gtf0)
+```
+
+```{r}
+methods(class = GRanges)
+as.data.frame(gtf0) %>% head()
+```
+
+```{r}
+temp <- mcols(gtf0)
+temp <- as.data.frame(temp)
+temp
+```
+
+```{r}
+head(gtf0$type)     
+levels(gtf0$type)   
+table(gtf0$type)
+gtf0$gene_biotype
+```
+
+```{r}
+gtf1 <- gtf0[gtf0$type == "CDS"]
+gtf1
+```
+
+```{r}
+mcols(gtf1)
+names(mcols(gtf1))
+```
+
+```{r}
+gtf1
+table(as.data.frame(gtf1$ID))
+```
+
+```{r}
+gtf1$transcript_id <- gtf1$ID
+gtf1$gene_id <- gtf1$ID
+```
+
+```{r}
+is.na(gtf1$transcript_id) %>% head()
+is.na(gtf1$transcript_id) %>% tail()
+
+summary(is.na(gtf1$transcript_id))
+```
+
+```{r}
+is.na(gtf1$transcript_id) %>% sum()
+```
+
+```{r}
+gtf2 <- gtf1[!is.na(gtf1$transcript_id)  ]
+gtf2
+```
+
+```{r}
+gtf2$transcript_id %>% head()
+duplicated(gtf2$transcript_id) %>% head()
+```
+
+```{r}
+as.data.frame(gtf2) %>% head()
+names(mcols(gtf2)) 
+```
+
+```{r}
+class(gtf2)
+
+gtf2 <- as.data.frame(gtf2)[, c("transcript_id","gene_id","locus_tag","source","type", "ID","product", "protein_id", "gene","Name" )]
+colnames(gtf2)
+
+rownames(gtf2) <- gtf2$transcript_id
+head(gtf2)
+```
+
+```{r}
+write.csv(gtf2, 
+          file = "P.lym_API-1.csv",
+          row.names = FALSE)
+```
+
+```{r}
+sessionInfo()
+```
+
