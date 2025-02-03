@@ -1,0 +1,91 @@
+---
+title: "Coculture_steroid metabolism"
+author: "Taojun Wang"
+date: "02/15/2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+getwd()
+```
+## load required packages
+```{r warning=FALSE}
+library(ggplot2)
+library(ape)
+library(plyr)
+library(RColorBrewer)
+library(reshape2)
+library(scales)
+library(dplyr)
+library(ggpubr) 
+library(cowplot) 
+library(readr)
+```
+# Load the data
+```{r}
+d1 <- read_csv("C:/UIUC documents/Androgen manuscript/Nature Microbiology_Revision/Revised manuscript/Data and codes/Coculture_steroid_metabolism/Coculture_steroid_metabolism.csv") #read the data
+head(d1)
+```
+# define format
+```{r}
+format.A <-  theme_classic()+ theme(plot.title = element_text(size= 11, hjust=0.5, face="bold"))+ 
+  theme(axis.text = element_text(size = 10)) + theme(axis.title = element_text(size = 10, face="bold")) + 
+  theme(strip.text = element_text( size = 10, face= "bold")) + theme(legend.position = "none")
+
+format.B <-  theme_classic()+ theme(plot.title = element_text(size= 11, hjust=0.5, face="bold"))+ 
+  theme(axis.text = element_text(size = 10)) + theme(axis.title = element_text(size = 10, face="bold")) + 
+  theme(strip.text = element_text( size = 10, face= "bold")) 
+```
+
+# color
+```{r}
+display.brewer.pal(n = 8, name = 'Dark2')
+# Hexadecimal color specification 
+brewer.pal(n = 8, name = "Dark2")
+```
+# Clarify the factors
+```{r}
+d1$Androgens = factor(d1$Androgens,order = TRUE, levels = c("11DC", "AD", "epiT"))
+```
+
+# Summarize the Deoxycortisol
+```{r}
+##
+d1_summary <- d1 %>%
+  group_by(Androgens,Time) %>%
+  summarise(
+    Mean = mean(Concentrations),
+    SD = sd(Concentrations) # This avoids a grouped df warning in ggplot
+  )
+
+d1_summary$Concentrations <- d1_summary$Mean
+head(d1_summary)
+##View(d1_summary)
+
+```
+
+```{r}
+p <- ggplot(d1, aes(x = Time, y = Concentrations, fill = Androgens)) +
+  geom_bar(data = d1_summary, aes(y = Concentrations), stat = "identity", position = position_dodge(), color="black") +
+  geom_point(position = position_jitterdodge(jitter.width = 0.2, dodge.width = 0.9), aes(color = Androgens), 
+             shape = 21, size = 3, stroke = 0.5, fill = "white")  + 
+  geom_errorbar(data = d1_summary, aes(ymin = Concentrations - SD, ymax = Concentrations + SD), 
+                width = .2, position = position_dodge(0.9)) + 
+  scale_fill_manual(values = c(  "#1B9E77","#D95F02" ,"#7570B3" ,"#E7298A","#66A61E", "#E6AB02", "#A6761D", "#666666")) + 
+  scale_color_manual(values = c( "black" ,"black" ,"black"))  + ylim(0,50) +
+  format.B + labs(x="Time", y="Concentrations (uM)")
+
+print(p)
+ggsave("C:/UIUC documents/Androgen manuscript/Nature Microbiology_Revision/Revised manuscript/Data and codes/Coculture_steroid_metabolism/Coculture_steroid_metabolism.pdf", height = 3.5, width = 4)
+
+```
+
+```{r}
+sessionInfo()
+```
+
+
